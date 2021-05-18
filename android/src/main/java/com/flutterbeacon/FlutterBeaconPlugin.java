@@ -25,7 +25,7 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.RequestPermissionsResultListener,
     PluginRegistry.ActivityResultListener {
-  
+
   private static final BeaconParser iBeaconLayout = new BeaconParser()
       .setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24");
 
@@ -36,9 +36,9 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
   private ActivityPluginBinding activityPluginBinding;
 
   private FlutterBeaconScanner beaconScanner;
-  private FlutterBeaconBroadcast beaconBroadcast;
+  //private FlutterBeaconBroadcast beaconBroadcast;
   private FlutterPlatform platform;
-  
+
   private BeaconManager beaconManager;
   Result flutterResult;
   private Result flutterResultBluetooth;
@@ -111,7 +111,7 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
     platform = new FlutterPlatform(activity);
     beaconScanner = new FlutterBeaconScanner(this, activity);
-    beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
+    //beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
 
     channel = new MethodChannel(messenger, "flutter_beacon");
     channel.setMethodCallHandler(this);
@@ -136,7 +136,7 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     }
 
     platform = null;
-    beaconBroadcast = null;
+    //beaconBroadcast = null;
 
     channel.setMethodCallHandler(null);
     eventChannel.setStreamHandler(null);
@@ -290,20 +290,20 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       return;
     }
 
-    if (call.method.equals("startBroadcast")) {
-      beaconBroadcast.startBroadcast(call.arguments, result);
-      return;
-    }
+    // if (call.method.equals("startBroadcast")) {
+    //   beaconBroadcast.startBroadcast(call.arguments, result);
+    //   return;
+    // }
 
-    if (call.method.equals("stopBroadcast")) {
-      beaconBroadcast.stopBroadcast(result);
-      return;
-    }
+    // if (call.method.equals("stopBroadcast")) {
+    //   beaconBroadcast.stopBroadcast(result);
+    //   return;
+    // }
 
-    if (call.method.equals("isBroadcasting")) {
-      beaconBroadcast.isBroadcasting(result);
-      return;
-    }
+    // if (call.method.equals("isBroadcasting")) {
+    //   beaconBroadcast.isBroadcasting(result);
+    //   return;
+    // }
 
     if (call.method.equals("isBroadcastSupported")) {
       result.success(platform.isBroadcastSupported());
