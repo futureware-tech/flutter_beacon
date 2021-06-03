@@ -1,11 +1,19 @@
 package com.flutterbeacon;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.RemoteException;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
@@ -109,6 +117,28 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       beaconManager.getBeaconParsers().add(iBeaconLayout);
     }
 
+    // Initialize foreground service for Beacon scanning
+    // Specify icon for scanning notification
+    // https://altbeacon.github.io/android-beacon-library/foreground-service.html
+    Notification.Builder builder = new Notification.Builder(activity.getApplicationContext());
+    builder.setSmallIcon(R.mipmap.ic_launcher);
+    builder.setContentTitle("Scanning for Beacons");
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      builder.setChannelId(createNotificationChannel("beacon_service", "Beacon Background Service", activity));
+    }
+    Intent intent = new Intent(activity, activity.getClass());
+    PendingIntent pendingIntent = PendingIntent.getActivity(
+            activity.getApplicationContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT
+    );
+    builder.setContentIntent(pendingIntent);
+    // Enable foreground service
+    beaconManager.enableForegroundServiceScanning(builder.build(), 456);
+    beaconManager.setEnableScheduledScanJobs(false);
+    // Customize background scan rate to 3 min
+    beaconManager.setBackgroundBetweenScanPeriod(0);
+    beaconManager.setBackgroundScanPeriod(180000);
+
+
     platform = new FlutterPlatform(activity);
     beaconScanner = new FlutterBeaconScanner(this, activity);
     //beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
@@ -127,6 +157,20 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
     eventChannelAuthorizationStatus = new EventChannel(messenger, "flutter_authorization_status_changed");
     eventChannelAuthorizationStatus.setStreamHandler(locationAuthorizationStatusStreamHandler);
+  }
+
+  @RequiresApi(Build.VERSION_CODES.O)
+  private String createNotificationChannel(final String channelId, final String channelName, final Activity activity) {
+    final NotificationChannel chan = new NotificationChannel(channelId,
+            channelName, NotificationManager.IMPORTANCE_DEFAULT);
+    chan.setLightColor(Color.BLUE);
+    chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+    chan.setDescription("Scan beacons in background");
+    // Register the channel with the system; you can't change the importance
+    // or other notification behaviors after this
+    NotificationManager notificationManager = activity.getSystemService(NotificationManager.class);
+    notificationManager.createNotificationChannel(chan);
+    return channelId;
   }
 
   private void teardownChannels() {
@@ -343,7 +387,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       if (result != null) {
         this.flutterResult = result;
       }
-
       beaconManager.bind(beaconScanner.beaconConsumer);
       return;
     }
