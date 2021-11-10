@@ -123,6 +123,8 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     Notification.Builder builder = new Notification.Builder(activity.getApplicationContext());
     builder.setSmallIcon(R.mipmap.ic_launcher);
     builder.setContentTitle("Scanning for Beacons");
+    // https://developer.android.com/reference/androidx/core/app/NotificationCompat#PRIORITY_HIGH
+    builder.setPriority(Notification.PRIORITY_HIGH);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       builder.setChannelId(createNotificationChannel("beacon_service", "Beacon Background Service", activity));
     }
@@ -134,9 +136,9 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     // Enable foreground service
     beaconManager.enableForegroundServiceScanning(builder.build(), 456);
     beaconManager.setEnableScheduledScanJobs(false);
-    // Customize background scan rate to 3 min
     beaconManager.setBackgroundBetweenScanPeriod(0);
-    beaconManager.setBackgroundScanPeriod(180000);
+    // constantly scanning in the background on a 1.1 second cycle
+    beaconManager.setBackgroundScanPeriod(1100);
 
 
     platform = new FlutterPlatform(activity);
