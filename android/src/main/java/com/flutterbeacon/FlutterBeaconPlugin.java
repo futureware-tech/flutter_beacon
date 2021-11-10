@@ -136,10 +136,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
     // Enable foreground service
     beaconManager.enableForegroundServiceScanning(builder.build(), 456);
     beaconManager.setEnableScheduledScanJobs(false);
-    beaconManager.setBackgroundBetweenScanPeriod(0);
-    // constantly scanning in the background on a 1.1 second cycle
-    beaconManager.setBackgroundScanPeriod(1100);
-
 
     platform = new FlutterPlatform(activity);
     beaconScanner = new FlutterBeaconScanner(this, activity);
