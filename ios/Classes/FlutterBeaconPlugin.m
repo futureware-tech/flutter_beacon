@@ -288,6 +288,13 @@
         // initialize location manager if it itsn't
         self.locationManager = [[CLLocationManager alloc] init];
         self.locationManager.delegate = self;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation;
+        self.locationManager.allowsBackgroundLocationUpdates = true;
+        self.locationManager.activityType = CLActivityTypeOtherNavigation;
+        self.locationManager.pausesLocationUpdatesAutomatically = false;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters;
+        UIBackgroundRefreshStatus refreshStatus = [[UIApplication sharedApplication] backgroundRefreshStatus];
+        NSLog(@"Background Refresh Status: %d", (refreshStatus == UIBackgroundRefreshStatusAvailable));
     }
 }
 
