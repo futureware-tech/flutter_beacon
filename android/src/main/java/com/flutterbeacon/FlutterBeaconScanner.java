@@ -25,16 +25,16 @@ import io.flutter.plugin.common.EventChannel;
 class FlutterBeaconScanner {
   private static final String TAG = FlutterBeaconScanner.class.getSimpleName();
   private final FlutterBeaconPlugin plugin;
-  private final WeakReference<Activity> activity;
+  private final Context context;
 
   private EventChannel.EventSink eventSinkRanging;
   private EventChannel.EventSink eventSinkMonitoring;
   private List<Region> regionRanging;
   private List<Region> regionMonitoring;
 
-  public FlutterBeaconScanner(FlutterBeaconPlugin plugin, Activity activity) {
+  public FlutterBeaconScanner(FlutterBeaconPlugin plugin, Context context) {
     this.plugin = plugin;
-    this.activity = new WeakReference<>(activity);
+    this.context = context;
   }
 
   final EventChannel.StreamHandler rangingStreamHandler = new EventChannel.StreamHandler() {
@@ -248,17 +248,18 @@ class FlutterBeaconScanner {
 
     @Override
     public Context getApplicationContext() {
-      return activity.get().getApplicationContext();
+      return context;
     }
 
     @Override
     public void unbindService(ServiceConnection serviceConnection) {
-      activity.get().unbindService(serviceConnection);
+      getApplicationContext().unbindService(serviceConnection);
     }
 
     @Override
     public boolean bindService(Intent intent, ServiceConnection serviceConnection, int i) {
-      return activity.get().bindService(intent, serviceConnection, i);
+      return getApplicationContext().bindService(intent, serviceConnection, i);
     }
   };
 }
+

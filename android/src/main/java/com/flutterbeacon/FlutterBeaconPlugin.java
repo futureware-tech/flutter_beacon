@@ -1,6 +1,7 @@
 package com.flutterbeacon;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.RemoteException;
@@ -20,7 +21,6 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.RequestPermissionsResultListener,
@@ -54,7 +54,8 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
   }
 
-  public static void registerWith(Registrar registrar) {
+  @SuppressWarnings("deprecation")
+  public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
     final FlutterBeaconPlugin instance = new FlutterBeaconPlugin();
     instance.setupChannels(registrar.messenger(), registrar.activity());
     registrar.addActivityResultListener(instance);
@@ -64,11 +65,43 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
     this.flutterPluginBinding = binding;
+    setupPluginMethods(flutterPluginBinding.getBinaryMessenger(), binding.getApplicationContext());
+  }
+
+  private void setupPluginMethods(BinaryMessenger messenger, Context context) {
+    if (activityPluginBinding != null) {
+      activityPluginBinding.addActivityResultListener(this);
+      activityPluginBinding.addRequestPermissionsResultListener(this);
+    }
+    beaconManager = BeaconManager.getInstanceForApplication(context);
+    if (!beaconManager.getBeaconParsers().contains(iBeaconLayout)) {
+      beaconManager.getBeaconParsers().clear();
+      beaconManager.getBeaconParsers().add(iBeaconLayout);
+    }
+    platform = new FlutterPlatform(context);
+    beaconScanner = new FlutterBeaconScanner(this, context);
+    //beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
+
+    channel = new MethodChannel(messenger, "flutter_beacon");
+    channel.setMethodCallHandler(this);
+
+    eventChannel = new EventChannel(messenger, "flutter_beacon_event");
+    eventChannel.setStreamHandler(beaconScanner.rangingStreamHandler);
+
+    eventChannelMonitoring = new EventChannel(messenger, "flutter_beacon_event_monitoring");
+    eventChannelMonitoring.setStreamHandler(beaconScanner.monitoringStreamHandler);
+
+    eventChannelBluetoothState = new EventChannel(messenger, "flutter_bluetooth_state_changed");
+    eventChannelBluetoothState.setStreamHandler(new FlutterBluetoothStateReceiver(context));
+
+    eventChannelAuthorizationStatus = new EventChannel(messenger, "flutter_authorization_status_changed");
+    eventChannelAuthorizationStatus.setStreamHandler(locationAuthorizationStatusStreamHandler);
   }
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     this.flutterPluginBinding = null;
+    teardownChannels();
   }
 
   @Override
@@ -102,13 +135,11 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       activityPluginBinding.addActivityResultListener(this);
       activityPluginBinding.addRequestPermissionsResultListener(this);
     }
-
     beaconManager = BeaconManager.getInstanceForApplication(activity.getApplicationContext());
     if (!beaconManager.getBeaconParsers().contains(iBeaconLayout)) {
       beaconManager.getBeaconParsers().clear();
       beaconManager.getBeaconParsers().add(iBeaconLayout);
     }
-
     platform = new FlutterPlatform(activity);
     beaconScanner = new FlutterBeaconScanner(this, activity);
     //beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
@@ -134,7 +165,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       activityPluginBinding.removeActivityResultListener(this);
       activityPluginBinding.removeRequestPermissionsResultListener(this);
     }
-
     platform = null;
     //beaconBroadcast = null;
 
@@ -166,7 +196,6 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
       result.success(true);
       return;
     }
-
     if (call.method.equals("initializeAndCheck")) {
       initializeAndCheck(result);
       return;

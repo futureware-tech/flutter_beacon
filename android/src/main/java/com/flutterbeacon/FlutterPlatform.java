@@ -20,29 +20,27 @@ import org.altbeacon.beacon.BeaconTransmitter;
 import java.lang.ref.WeakReference;
 
 class FlutterPlatform {
-  private final WeakReference<Activity> activityWeakReference;
+  private final Context context;
   
-  FlutterPlatform(Activity activity) {
-    activityWeakReference = new WeakReference<>(activity);
+  FlutterPlatform(Context context) {
+    this.context = context;
   }
-  
-  private Activity getActivity() {
-    return activityWeakReference.get();
-  }
-  
+
   void openLocationSettings() {
     Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    getActivity().startActivity(intent);
+    context.startActivity(intent);
   }
 
   void openBluetoothSettings() {
     Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-    getActivity().startActivityForResult(intent, FlutterBeaconPlugin.REQUEST_CODE_BLUETOOTH);
+    // TODO: Do not cast context to Activity
+    ((Activity) context).startActivityForResult(intent, FlutterBeaconPlugin.REQUEST_CODE_BLUETOOTH);
   }
 
   void requestAuthorization() {
-    ActivityCompat.requestPermissions(getActivity(), new String[]{
+    // TODO: Do not cast context to Activity
+    ActivityCompat.requestPermissions(((Activity) context), new String[]{
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION
     }, FlutterBeaconPlugin.REQUEST_CODE_LOCATION);
@@ -50,7 +48,7 @@ class FlutterPlatform {
 
   boolean checkLocationServicesPermission() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      return ContextCompat.checkSelfPermission(getActivity(),
+      return ContextCompat.checkSelfPermission(context,
           Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
@@ -59,12 +57,12 @@ class FlutterPlatform {
 
   boolean checkLocationServicesIfEnabled() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-      LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+      LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
       return locationManager != null && locationManager.isLocationEnabled();
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      int mode = Settings.Secure.getInt(getActivity().getContentResolver(), Settings.Secure.LOCATION_MODE,
+      int mode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE,
           Settings.Secure.LOCATION_MODE_OFF);
       return (mode != Settings.Secure.LOCATION_MODE_OFF);
     }
@@ -75,7 +73,7 @@ class FlutterPlatform {
   @SuppressLint("MissingPermission")
   boolean checkBluetoothIfEnabled() {
     BluetoothManager bluetoothManager = (BluetoothManager)
-        getActivity().getSystemService(Context.BLUETOOTH_SERVICE);
+        context.getSystemService(Context.BLUETOOTH_SERVICE);
     if (bluetoothManager == null) {
       throw new RuntimeException("No bluetooth service");
     }
@@ -86,10 +84,11 @@ class FlutterPlatform {
   }
   
   boolean isBroadcastSupported() {
-    return BeaconTransmitter.checkTransmissionSupported(getActivity()) == 0;
+    return BeaconTransmitter.checkTransmissionSupported(context) == 0;
   }
   
   boolean shouldShowRequestPermissionRationale(String permission) {
-    return ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), permission);
+    // TODO: Do not cast context to Activity
+    return ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permission);
   }
 }
