@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -27,10 +29,46 @@ class FlutterBeaconScanner {
   private final FlutterBeaconPlugin plugin;
   private final Context context;
 
-  private EventChannel.EventSink eventSinkRanging;
-  private EventChannel.EventSink eventSinkMonitoring;
+  private MainThreadEventSink eventSinkRanging;
+  private MainThreadEventSink eventSinkMonitoring;
   private List<Region> regionRanging;
   private List<Region> regionMonitoring;
+
+  // Fixes: https://github.com/flutter/flutter/issues/34993
+  private static class MainThreadEventSink implements EventChannel.EventSink {
+    private EventChannel.EventSink eventSink;
+    private Handler handler;
+
+    MainThreadEventSink(EventChannel.EventSink eventSink) {
+      this.eventSink = eventSink;
+      handler = new Handler(Looper.getMainLooper());
+    }
+
+    @Override
+    public void success(final Object o) {
+      handler.post(new Runnable() {
+        @Override
+        public void run() {
+          eventSink.success(o);
+        }
+      });
+    }
+
+    @Override
+    public void error(final String s, final String s1, final Object o) {
+      handler.post(new Runnable() {
+        @Override
+        public void run() {
+          eventSink.error(s, s1, o);
+        }
+      });
+    }
+
+    @Override
+    public void endOfStream() {
+
+    }
+  }
 
   public FlutterBeaconScanner(FlutterBeaconPlugin plugin, Context context) {
     this.plugin = plugin;
@@ -73,7 +111,7 @@ class FlutterBeaconScanner {
       eventSink.error("Beacon", "invalid region for ranging", null);
       return;
     }
-    eventSinkRanging = eventSink;
+    eventSinkRanging = new MainThreadEventSink(eventSink);
     if (plugin.getBeaconManager() != null && !plugin.getBeaconManager().isBound(beaconConsumer)) {
       plugin.getBeaconManager().bind(beaconConsumer);
     } else {
@@ -161,7 +199,7 @@ class FlutterBeaconScanner {
       eventSink.error("Beacon", "invalid region for monitoring", null);
       return;
     }
-    eventSinkMonitoring = eventSink;
+    eventSinkMonitoring =  new MainThreadEventSink(eventSink);
     if (plugin.getBeaconManager() != null && !plugin.getBeaconManager().isBound(beaconConsumer)) {
       plugin.getBeaconManager().bind(beaconConsumer);
     } else {
