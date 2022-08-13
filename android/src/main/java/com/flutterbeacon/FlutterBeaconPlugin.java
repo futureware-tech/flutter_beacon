@@ -57,7 +57,7 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
   @SuppressWarnings("deprecation")
   public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
     final FlutterBeaconPlugin instance = new FlutterBeaconPlugin();
-    instance.setupChannels(registrar.messenger(), registrar.activity());
+    instance.setupPluginMethods(registrar.messenger(), registrar.activity());
     registrar.addActivityResultListener(instance);
     registrar.addRequestPermissionsResultListener(instance);
   }
@@ -107,8 +107,8 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
   @Override
   public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
     this.activityPluginBinding = binding;
-
-    setupChannels(flutterPluginBinding.getBinaryMessenger(), binding.getActivity());
+    activityPluginBinding.addActivityResultListener(this);
+    activityPluginBinding.addRequestPermissionsResultListener(this);
   }
 
   @Override
@@ -123,41 +123,10 @@ public class FlutterBeaconPlugin implements FlutterPlugin, ActivityAware, Method
 
   @Override
   public void onDetachedFromActivity() {
-    teardownChannels();
   }
 
   BeaconManager getBeaconManager() {
     return beaconManager;
-  }
-
-  private void setupChannels(BinaryMessenger messenger, Activity activity) {
-    if (activityPluginBinding != null) {
-      activityPluginBinding.addActivityResultListener(this);
-      activityPluginBinding.addRequestPermissionsResultListener(this);
-    }
-    beaconManager = BeaconManager.getInstanceForApplication(activity.getApplicationContext());
-    if (!beaconManager.getBeaconParsers().contains(iBeaconLayout)) {
-      beaconManager.getBeaconParsers().clear();
-      beaconManager.getBeaconParsers().add(iBeaconLayout);
-    }
-    platform = new FlutterPlatform(activity);
-    beaconScanner = new FlutterBeaconScanner(this, activity);
-    //beaconBroadcast = new FlutterBeaconBroadcast(activity, iBeaconLayout);
-
-    channel = new MethodChannel(messenger, "flutter_beacon");
-    channel.setMethodCallHandler(this);
-
-    eventChannel = new EventChannel(messenger, "flutter_beacon_event");
-    eventChannel.setStreamHandler(beaconScanner.rangingStreamHandler);
-
-    eventChannelMonitoring = new EventChannel(messenger, "flutter_beacon_event_monitoring");
-    eventChannelMonitoring.setStreamHandler(beaconScanner.monitoringStreamHandler);
-
-    eventChannelBluetoothState = new EventChannel(messenger, "flutter_bluetooth_state_changed");
-    eventChannelBluetoothState.setStreamHandler(new FlutterBluetoothStateReceiver(activity));
-
-    eventChannelAuthorizationStatus = new EventChannel(messenger, "flutter_authorization_status_changed");
-    eventChannelAuthorizationStatus.setStreamHandler(locationAuthorizationStatusStreamHandler);
   }
 
   private void teardownChannels() {
